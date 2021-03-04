@@ -16,9 +16,17 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Print tpl.html data to the terminal
+	// Create new file
+	nf, err := os.Create("index.html")
+	if err != nil {
+		log.Println("error creating files", err)
+	}
+
+	// Close the file after program exits
+	defer nf.Close()
+
 	// Step 2, execute file
-	err = tpl.Execute(os.Stdout, nil)
+	err = tpl.Execute(nf, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
