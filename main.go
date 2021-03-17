@@ -10,23 +10,26 @@ func main() {
 	// tpl, is a pointer to a template
 	// tpl, is like a container for all our templates
 	// Step 1. parse file
-	tpl, err := template.ParseFiles("tpl.html")
+	tpl, err := template.ParseFiles("three.wizzy")
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// Create new file
-	nf, err := os.Create("index.html")
+	// Step 2, execute file
+	err = tpl.Execute(os.Stdout, nil)
 	if err != nil {
-		log.Println("error creating files", err)
+		log.Fatalln(err)
 	}
 
-	// Close the file after program exits
-	defer nf.Close()
+	// Add more files to the tamplate container
+	tpl, err = tpl.ParseFiles("one.wizzy", "two.wizzy")
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	// Step 2, execute file
-	err = tpl.Execute(nf, nil)
+	// You can specify which template to execute
+	err = tpl.ExecuteTemplate(os.Stdout, "one.wizzy", nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
