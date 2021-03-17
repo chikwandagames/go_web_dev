@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"text/template"
 )
 
-// http.Handeer
-
-// Anything the implements ServerHTTP(ResponseWriter, *Request)
-// is of type handler
-/*
-	type Handler interface {
-		ServerHTTP(ResponseWriter, *Request)
-	}
-
-*/
+// When you use POST data is sent via the body
+// when you use GET the data is sent through the url
 
 type hotdog int
+
+var tmpl *template.Template
+
+func init() {
+	tmpl = template.Must(template.ParseFiles("index.gohtml"))
+}
 
 func main() {
 	var d hotdog
@@ -28,5 +28,11 @@ func main() {
 // Attaching the ServerHTTP(ResponseWriter, *Request) function to
 // type hotdog makes hotdog be of type http.Handler
 func (m hotdog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Any code you want in this function")
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r.Form)
+
+	tmpl.ExecuteTemplate(w, "index.gohtml", r.Form)
 }
