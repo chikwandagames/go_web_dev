@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
 )
@@ -34,12 +34,25 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-
-		// Write to a connection
-		io.WriteString(conn, "\nHello from TCP server\n")
-		fmt.Fprintln(conn, "how is your day")
-		n, err := fmt.Fprintf(conn, "%v", "well, I hope\n")
-		fmt.Print(n, " bytes written.\n")
-		conn.Close()
+		go handle(conn)
 	}
+}
+
+func handle(conn net.Conn) {
+	// We use bufio scranner to read from the connection
+	scanner := bufio.NewScanner(conn)
+
+	// Scan() returns a bool, it keeps scanning tocken by tocken i.e. scanner contents
+	// as we loop until the is nothing to scan the it returns false
+	// The token is a line by default
+	for scanner.Scan() {
+		ln := scanner.Text()
+		fmt.Println(ln)
+	}
+	defer conn.Close()
+
+	// We never get here
+	// we have an opent stream connection
+
+	fmt.Println("Code got here")
 }
