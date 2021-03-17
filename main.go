@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 )
 
 // To run program
@@ -43,6 +44,13 @@ func main() {
 }
 
 func handle(conn net.Conn) {
+
+	// Set a 10 second deadline no the
+	err := conn.SetDeadline(time.Now().Add(10 * time.Second))
+	if err != nil {
+		log.Println("Conn timed out")
+	}
+
 	// We use bufio scranner to read from the connection
 	scanner := bufio.NewScanner(conn)
 
