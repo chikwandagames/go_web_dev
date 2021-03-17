@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"html/template"
 	"log"
 	"net/http"
-	"text/template"
+	"net/url"
 )
 
 // When you use POST data is sent via the body
@@ -28,11 +28,26 @@ func main() {
 // Attaching the ServerHTTP(ResponseWriter, *Request) function to
 // type hotdog makes hotdog be of type http.Handler
 func (m hotdog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Get data out of the form
 	err := r.ParseForm()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(r.Form)
+	// fmt.Println(r.Form)
+	// fmt.Printf("Form type: %T \n", r.Form)
 
-	tmpl.ExecuteTemplate(w, "index.gohtml", r.Form)
+	data := struct {
+		Method      string
+		URL         *url.URL
+		Submissions map[string][]string
+		Header      http.Header
+	}{
+		r.Method,
+		r.URL,
+		r.Form, // form data
+		r.Header,
+	}
+	// fmt.Printf("data: %v", data)
+
+	tmpl.ExecuteTemplate(w, "index.gohtml", data)
 }
