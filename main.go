@@ -15,7 +15,7 @@ type hotdog int
 var tmpl *template.Template
 
 func init() {
-	tmpl = template.Must(template.ParseFiles("index.gohtml"))
+	tmpl = template.Must(template.ParseFiles("index.html"))
 }
 
 func main() {
@@ -37,17 +37,21 @@ func (m hotdog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// fmt.Printf("Form type: %T \n", r.Form)
 
 	data := struct {
-		Method      string
-		URL         *url.URL
-		Submissions map[string][]string
-		Header      http.Header
+		Method        string
+		URL           *url.URL
+		Submissions   map[string][]string
+		Header        http.Header
+		Host          string
+		ContentLength int64
 	}{
 		r.Method,
 		r.URL,
-		r.Form, // form data
+		r.Form,
 		r.Header,
+		r.Host,
+		r.ContentLength,
 	}
 	// fmt.Printf("data: %v", data)
 
-	tmpl.ExecuteTemplate(w, "index.gohtml", data)
+	tmpl.ExecuteTemplate(w, "index.html", data)
 }
