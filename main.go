@@ -1,22 +1,15 @@
 package main
 
 import (
-	"html/template"
-	"log"
+	"fmt"
 	"net/http"
-	"net/url"
 )
 
-// When you use POST data is sent via the body
-// when you use GET the data is sent through the url
+// http.Handeer
+
+// Anything the implements ServerHTTP(ResponseWriter, *Request)
 
 type hotdog int
-
-var tmpl *template.Template
-
-func init() {
-	tmpl = template.Must(template.ParseFiles("index.html"))
-}
 
 func main() {
 	var d hotdog
@@ -28,30 +21,9 @@ func main() {
 // Attaching the ServerHTTP(ResponseWriter, *Request) function to
 // type hotdog makes hotdog be of type http.Handler
 func (m hotdog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Get data out of the form
-	err := r.ParseForm()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// fmt.Println(r.Form)
-	// fmt.Printf("Form type: %T \n", r.Form)
-
-	data := struct {
-		Method        string
-		URL           *url.URL
-		Submissions   map[string][]string
-		Header        http.Header
-		Host          string
-		ContentLength int64
-	}{
-		r.Method,
-		r.URL,
-		r.Form,
-		r.Header,
-		r.Host,
-		r.ContentLength,
-	}
-	// fmt.Printf("data: %v", data)
-
-	tmpl.ExecuteTemplate(w, "index.html", data)
+	w.Header().Set("Wisdom", "this is from wisdom")
+	// If we change the Content-Type to text/html, then the browser
+	// will interpret the data as html
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "<h1>Any code you want in this func </h1>")
 }
