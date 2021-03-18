@@ -8,18 +8,16 @@ import (
 
 func main() {
 	http.HandleFunc("/", dog)
-	// We pass a path of a file in the root of the project
 	http.HandleFunc("/toby.jpg", dogPic)
 	http.ListenAndServe(":8080", nil)
 }
 
 func dog(w http.ResponseWriter, req *http.Request) {
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	io.WriteString(w, `
-	<img src="/toby.jpg">
-	`)
+	// src="/toby.jpg" invokes the 	http.HandleFunc("/toby.jpg", dogPic) func
+	// this then runs the dogPic function, which serves the image using
+	//
+	io.WriteString(w, `<img src="/toby.jpg">`)
 }
 
 func dogPic(w http.ResponseWriter, req *http.Request) {
@@ -31,5 +29,14 @@ func dogPic(w http.ResponseWriter, req *http.Request) {
 	}
 	defer f.Close()
 
-	io.Copy(w, f)
+	// Stat() returns the FileInfo structure describing the file
+	// If there is an error, it will be of type *PathError
+	fi, err := f.Stat()
+	if err != nil {
+		http.Error(w, "file not found", 404)
+		return
+	}
+
+	// fi.ModTime() is the last time the file was modified
+	http.ServeContent(w, req, f.Name(), fi.ModTime(), f)
 }
