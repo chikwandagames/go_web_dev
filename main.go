@@ -22,16 +22,14 @@ func main() {
 	var d hotdog
 	var c hotcat
 
-	// NewServeMux allocates and returns a new ServeMux
-	// func NewServeMux() *ServeMux { return new(ServeMux)}
-	// Therefore mux is of type *ServeMux
-	mux := http.NewServeMux()
 	// The trailing / at the end of the path makes a difference
 	// "/dog/" will catch  /dog/something/another
 	// "/cat" will NOT catch /cat/something
-	mux.Handle("/dog/", d)
-	mux.Handle("/cat", c)
-	http.ListenAndServe(":8080", mux)
+	http.Handle("/dog/", d)
+	http.Handle("/cat", c)
+
+	// If you pass nil, ListenAndServe will use DefaultServeMux
+	http.ListenAndServe(":8080", nil)
 }
 
 // Attaching the ServerHTTP(ResponseWriter, *Request) function to
