@@ -6,21 +6,26 @@ import (
 )
 
 func main() {
-	// FileServer takes a directory, current dir "." in this case
-	// and returns a handler
-	// http.FileServer(http.Dir(".")) means serve everything the
-	// current directory
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	http.HandleFunc("/dog/", dog)
+	http.HandleFunc("/", dog)
+
+	// http://localhost:8080/resources/ will list all files in the assets folder
+	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("./assets"))))
 	http.ListenAndServe(":8080", nil)
 }
 
 func dog(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// When the browser runs the html <img src="/toby.jpg">
-	// it look for /toby.jpg, the closest match is Handler("/")
-	// Then http.FileServer checks for the /toby.jpg file finds
-	// it and serves it
+	//
 
-	io.WriteString(w, `<img src="/toby.jpg">`)
+	// in the <img> tag /resources/ referes to the /resources route
+	// toby.jpg is the file in the assets folder
+	// http.StripPrefix("/resources") will remover "/resources" from
+	// src="/resources/toby.jpg" and leave just /toby.jpg
+	// http.FileServer() will look for anything in the ./assets folder
+	// in the current dir in this case /toby.jpg
+
+	// So technically ./assets will be concatenated to /toby by http.FileServer
+	// After http.StripPrefix has removed /resources from src="/resources/toby.jpg"
+	io.WriteString(w, `<img src="/resources/toby.jpg">`)
+	io.WriteString(w, `<img src="/resources/auba.jpg">`)
 }
