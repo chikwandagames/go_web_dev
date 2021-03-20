@@ -32,11 +32,9 @@ func bar(w http.ResponseWriter, req *http.Request) {
 
 	// process form submission here
 
-	// .Set(), will set an new location, which will redirect to "/" foo handler
-	w.Header().Set("Location", "/")
 	// Becauser we are using http.StatusSeeOther 303 status code, the method
 	// will be changed to GET
-	w.WriteHeader(http.StatusSeeOther)
+	http.Redirect(w, req, "/", http.StatusSeeOther)
 }
 
 func barred(w http.ResponseWriter, req *http.Request) {
