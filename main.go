@@ -1,22 +1,11 @@
 package main
 
 import (
-	"html/template"
-	"log"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
-
-var tpl *template.Template
-
-func init() {
-	tpl = template.Must(template.ParseGlob("templates/*"))
-}
-
-type person struct {
-	FirstName  string
-	LastName   string
-	Subscribed bool
-}
 
 func main() {
 	http.HandleFunc("/", foo)
@@ -26,16 +15,37 @@ func main() {
 
 func foo(w http.ResponseWriter, req *http.Request) {
 
-	fName := req.FormValue("first")
-	lName := req.FormValue("last")
-	// if the checkbox is ticked, then req.FormValue("subscribe") == "on"
-	isSub := req.FormValue("subscribe") == "on"
+	var s string
+	fmt.Println(req.Method)
+	if req.Method == http.MethodPost {
 
-	p1 := person{FirstName: fName, LastName: lName, Subscribed: isSub}
+		// open
+		// FormFile, catches a file submited by a user
+		f, h, err := req.FormFile("the_file")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
 
-	err := tpl.ExecuteTemplate(w, "index.html", p1)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		log.Fatalln(err)
+		// for your information
+		fmt.Println("\nfile:", f, "\nheader:", h, "\nerr", err)
+
+		// read the file
+		bs, err := ioutil.ReadAll(f)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		s = string(bs)
 	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// enctype="multipart/form-data", means we are uploading a file
+	io.WriteString(w, `
+	<form method="POST" enctype="multipart/form-data">
+	<input type="file" name="the_file">
+	<input type="submit">
+	</form>
+	<br>`+s)
 }
