@@ -3,10 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 var tpl *template.Template
@@ -17,56 +14,32 @@ func init() {
 
 func main() {
 	http.HandleFunc("/", foo)
+	http.HandleFunc("/bar", bar)
+	// Executes a template at, index.html
+	http.HandleFunc("/barred", barred)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
 
 func foo(w http.ResponseWriter, req *http.Request) {
+	fmt.Print("Your request method at foo: ", req.Method, "\n\n")
+}
 
-	var s string
-	if req.Method == http.MethodPost {
+func bar(w http.ResponseWriter, req *http.Request) {
+	// The form in barred (index.html) is submitted to bar handler
+	// <form method="POST" action="/bar">
+	fmt.Println("Your request method at bar:", req.Method)
 
-		// open
-		f, h, err := req.FormFile("q")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
+	// process form submission here
 
-		// for your information
-		fmt.Println("\nfile:", f, "\nheader:", h, "\nerr", err)
+	// .Set(), will set an new location, which will redirect to "/" foo handler
+	w.Header().Set("Location", "/")
+	// Becauser we are using http.StatusSeeOther 303 status code, the method
+	// will be changed to GET
+	w.WriteHeader(http.StatusSeeOther)
+}
 
-		// read
-		bs, err := ioutil.ReadAll(f)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		s = string(bs)
-
-		// store on server
-
-		// Create a file, store it in the current dir "." /user/
-		// os.Create, creates a pointer to a file, newFile,
-		// it implements the writer interface so we can do newFile.write
-		newFile, err := os.Create(filepath.Join("./user/", h.Filename))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer newFile.Close()
-
-		// Write writes len(b) bytes to the File.
-		// It returns the number of bytes written and an error, if any.
-		// Write returns a non-nil error when n != len(b).
-		_, err = newFile.Write(bs)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tpl.ExecuteTemplate(w, "index.html", s)
+func barred(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Your request method at barred:", req.Method)
+	tpl.ExecuteTemplate(w, "index.html", nil)
 }

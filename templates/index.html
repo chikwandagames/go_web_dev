@@ -1,18 +1,17 @@
+  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
 
-{{template "header"}}
-
-<!-- When posting a file in a form, you need to use multipart/form-data -->
-
-<form method="POST" enctype="multipart/form-data">
-    <label for="idx-f">Choose File To Upload</label>
-    <input type="file" id="idx-f" name="q">
-    <br>
+<!-- this form will be submitted to bar  -->
+<form method="POST" action="/bar">
+    <input type="text" name="fname">
     <input type="submit">
 </form>
 
-{{if .}}
-<h1>Here are the contents of the file:</h1>
-{{.}}
-{{end}}
-
-{{template "footer"}}
+</body>
+</html>
