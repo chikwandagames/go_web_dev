@@ -31,9 +31,12 @@ func bar(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("Your request method at bar:", req.Method)
 	// process form submission here
 
-	// The difference from using http.StatusSeeOthe to http.StatusTemporaryRedirect
-	// is that the method does not change to GET it stays as POST
-	http.Redirect(w, req, "/", http.StatusTemporaryRedirect)
+	// If you hit bar once for the first time, the browser will not
+	// allow you to hit bar again,
+	// each time you hit bar the browser will automatically redirect you
+	// to foo "/" because of http.StatusMovedPermanently.
+	// You would need to clear the cache to access bar again
+	http.Redirect(w, req, "/", http.StatusMovedPermanently)
 }
 
 func barred(w http.ResponseWriter, req *http.Request) {
