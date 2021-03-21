@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 )
 
 func main() {
 	http.HandleFunc("/", set)
 	http.HandleFunc("/read", read)
+	http.HandleFunc("/multiple", setMultiple)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
@@ -15,26 +17,50 @@ func main() {
 func set(w http.ResponseWriter, req *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:  "my-cookie",
-		Value: "some value inside the cookie",
+		Value: "some value",
 		Path:  "/",
 	})
 	fmt.Fprintln(w, "COOKIE WRITTEN - CHECK YOUR BROWSER")
 	fmt.Fprintln(w, "in chrome go to: dev tools / application / cookies")
 }
 
+// For reading cookies
 func read(w http.ResponseWriter, req *http.Request) {
 
-	// Cookie() reads a cookie, takes the name of the cookie
-
-	// Cookie returns the named cookie provided in the request or
-	// ErrNoCookie if not found.
-	// If multiple cookies match the given name, only one cookie will
-	// be returned.
-	c, err := req.Cookie("my-cookie")
+	c1, err := req.Cookie("my-cookie")
 	if err != nil {
-		http.Error(w, http.StatusText(400), http.StatusBadRequest)
-		return
+		log.Println(err)
+	} else {
+		fmt.Fprintln(w, "YOUR COOKIE #1:", c1)
 	}
 
-	fmt.Fprintln(w, "YOUR COOKIE:", c)
+	c2, err := req.Cookie("general")
+	if err != nil {
+		log.Println(err)
+	} else {
+		fmt.Fprintln(w, "YOUR COOKIE #2:", c2)
+	}
+
+	c3, err := req.Cookie("specific")
+	if err != nil {
+		log.Println(err)
+	} else {
+		fmt.Fprintln(w, "YOUR COOKIE #3:", c3)
+	}
+}
+
+// For setting multiple cookies
+func setMultiple(w http.ResponseWriter, req *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:  "general",
+		Value: "some other value about general things",
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:  "specific",
+		Value: "some other value about specific things",
+	})
+
+	fmt.Fprintln(w, "COOKIES WRITTEN - CHECK YOUR BROWSER")
+	fmt.Fprintln(w, "in chrome go to: dev tools / application / cookies")
 }
