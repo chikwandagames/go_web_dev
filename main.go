@@ -2,44 +2,52 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"net/http"
-	"strconv"
 )
 
 func main() {
-	http.HandleFunc("/", numberOfSiteVisits)
-	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/", index)
+	http.HandleFunc("/set", set)
+	http.HandleFunc("/read", read)
+	http.HandleFunc("/expire", expire)
 	http.ListenAndServe(":8080", nil)
 }
 
-func numberOfSiteVisits(res http.ResponseWriter, req *http.Request) {
+func index(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintln(w, `<h1><a href="/set">set a cookie</a></h1>`)
+}
 
-	cookie, err := req.Cookie("my-cookie")
+func set(w http.ResponseWriter, req *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:  "session",
+		Value: "some value",
+		Path:  "/",
+	})
+	fmt.Fprintln(w, `<h1><a href="/read">read</a></h1>`)
+}
 
-	if err == http.ErrNoCookie {
-		// If cookie not found, create one
-		cookie = &http.Cookie{
-			Name:  "my-cookie",
-			Value: "0",
-			Path:  "/",
-		}
-	}
-
-	//  strconv.Atoi(), string convert asci to int
-	// convert from string to int
-	count, err := strconv.Atoi(cookie.Value)
-	fmt.Printf("Cookie value type: %T, count type: %T \n", cookie.Value, count)
+func read(w http.ResponseWriter, req *http.Request) {
+	c, err := req.Cookie("session")
 	if err != nil {
-		log.Fatalln(err)
+		http.Redirect(w, req, "/set", http.StatusSeeOther)
+		return
 	}
 
-	count++
-	// Conver count back to (asci) string, and set that to the cookie value
-	cookie.Value = strconv.Itoa(count)
+	fmt.Fprintf(w, `<h1>Your Cookie:<br>%v</h1><h1><a href="/expire">expire</a></h1>`, c)
+}
 
-	http.SetCookie(res, cookie)
+func expire(w http.ResponseWriter, req *http.Request) {
+	c, err := req.Cookie("session")
+	if err != nil {
+		http.Redirect(w, req, "/set", http.StatusSeeOther)
+		return
+	}
 
-	io.WriteString(res, "Visited: "+cookie.Value+" times")
+	// MaxAge sets how long a cookie should live in seconds
+
+	// c.MaxAge = -3 // 0 -x deletes cookie imediately
+	c.MaxAge = 3
+	// Reset the cookie because we've modified one of the fields
+	http.SetCookie(w, c)
+	http.Redirect(w, req, "/", http.StatusSeeOther)
 }
