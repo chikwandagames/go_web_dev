@@ -2,65 +2,44 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func main() {
-	http.HandleFunc("/", set)
-	http.HandleFunc("/read", read)
-	http.HandleFunc("/multiple", setMultiple)
+	http.HandleFunc("/", numberOfSiteVisits)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
 
-func set(w http.ResponseWriter, req *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:  "my-cookie",
-		Value: "some value",
-		Path:  "/",
-	})
-	fmt.Fprintln(w, "COOKIE WRITTEN - CHECK YOUR BROWSER")
-	fmt.Fprintln(w, "in chrome go to: dev tools / application / cookies")
-}
+func numberOfSiteVisits(res http.ResponseWriter, req *http.Request) {
 
-// For reading cookies
-func read(w http.ResponseWriter, req *http.Request) {
+	cookie, err := req.Cookie("my-cookie")
 
-	c1, err := req.Cookie("my-cookie")
-	if err != nil {
-		log.Println(err)
-	} else {
-		fmt.Fprintln(w, "YOUR COOKIE #1:", c1)
+	if err == http.ErrNoCookie {
+		// If cookie not found, create one
+		cookie = &http.Cookie{
+			Name:  "my-cookie",
+			Value: "0",
+			Path:  "/",
+		}
 	}
 
-	c2, err := req.Cookie("general")
+	//  strconv.Atoi(), string convert asci to int
+	// convert from string to int
+	count, err := strconv.Atoi(cookie.Value)
+	fmt.Printf("Cookie value type: %T, count type: %T \n", cookie.Value, count)
 	if err != nil {
-		log.Println(err)
-	} else {
-		fmt.Fprintln(w, "YOUR COOKIE #2:", c2)
+		log.Fatalln(err)
 	}
 
-	c3, err := req.Cookie("specific")
-	if err != nil {
-		log.Println(err)
-	} else {
-		fmt.Fprintln(w, "YOUR COOKIE #3:", c3)
-	}
-}
+	count++
+	// Conver count back to (asci) string, and set that to the cookie value
+	cookie.Value = strconv.Itoa(count)
 
-// For setting multiple cookies
-func setMultiple(w http.ResponseWriter, req *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:  "general",
-		Value: "some other value about general things",
-	})
+	http.SetCookie(res, cookie)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  "specific",
-		Value: "some other value about specific things",
-	})
-
-	fmt.Fprintln(w, "COOKIES WRITTEN - CHECK YOUR BROWSER")
-	fmt.Fprintln(w, "in chrome go to: dev tools / application / cookies")
+	io.WriteString(res, "Visited: "+cookie.Value+" times")
 }
