@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	uuid "github.com/satori/go.uuid"
+	bcrypt "golang.org/x/crypto/bcrypt"
 )
 
 type user struct {
 	UserName string
-	Password string
+	Password []byte
 	First    string
 	Last     string
 }
@@ -31,12 +32,12 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	u := getUser(req)
+	u := getUser(w, req)
 	tpl.ExecuteTemplate(w, "index.html", u)
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
-	u := getUser(req)
+	u := getUser(w, req)
 	if !alreadyLoggedIn(req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
@@ -45,11 +46,12 @@ func bar(w http.ResponseWriter, req *http.Request) {
 }
 
 func signup(w http.ResponseWriter, req *http.Request) {
-	// If you already logged in no need to signup
 	if alreadyLoggedIn(req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
+
+	var u user
 
 	// process form submission
 	if req.Method == http.MethodPost {
@@ -60,7 +62,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		f := req.FormValue("firstname")
 		l := req.FormValue("lastname")
 
-		// is username taken?
+		// username taken?
 		if _, ok := dbUsers[un]; ok {
 			http.Error(w, "Username already taken", http.StatusForbidden)
 			return
@@ -76,7 +78,17 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		dbSessions[c.Value] = un
 
 		// store user in dbUsers
-		u := user{un, p, f, l}
+		// We pass p (password) to the slice of bytes, to generate the
+		// encrypted password
+		// MinCost, is a constant that determines the strength of encryption
+		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Now we store the bs instead of password in the user object
+		u = user{un, bs, f, l}
 		dbUsers[un] = u
 
 		// redirect
@@ -84,7 +96,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	tpl.ExecuteTemplate(w, "signup.html", nil)
+	tpl.ExecuteTemplate(w, "signup.html", u)
 }
 
 // map examples with the comma, ok idiom
