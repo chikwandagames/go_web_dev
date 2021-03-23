@@ -9,6 +9,7 @@ import (
 func getUser(w http.ResponseWriter, req *http.Request) user {
 	// get cookie
 	c, err := req.Cookie("session")
+	// If cookie not exist, create one, and store uuid
 	if err != nil {
 		sID := uuid.NewV4()
 		c = &http.Cookie{
@@ -19,9 +20,11 @@ func getUser(w http.ResponseWriter, req *http.Request) user {
 	}
 	http.SetCookie(w, c)
 
-	// if the user exists already, get user
 	var u user
+	// if the user exists already, get user
+	// this means we are revisiting this page
 	if un, ok := dbSessions[c.Value]; ok {
+		// Retrieve the user, using the unique username
 		u = dbUsers[un]
 	}
 	return u
@@ -29,14 +32,11 @@ func getUser(w http.ResponseWriter, req *http.Request) user {
 
 func alreadyLoggedIn(req *http.Request) bool {
 	c, err := req.Cookie("session")
-	// If no cookie, return false,
 	if err != nil {
 		return false
 	}
 
-	// Get usermame by ID
 	un := dbSessions[c.Value]
-	// If user with ID c.Value (cookie.value) is found the ok == true
 	_, ok := dbUsers[un]
 	return ok
 }

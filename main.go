@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	uuid "github.com/satori/go.uuid"
-	bcrypt "golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type user struct {
@@ -21,12 +21,18 @@ var dbSessions = map[string]string{} // session ID, user ID
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
+	// Generate a hash
+	bs, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.MinCost)
+	// Create a test user, set bs (hash) as password
+	// Here we hardcode a user
+	dbUsers["dred@gmail.com"] = user{"dred@gmail.com", bs, "Jah", "Ranga"}
 }
 
 func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/bar", bar)
 	http.HandleFunc("/signup", signup)
+	http.HandleFunc("/login", login)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
@@ -37,6 +43,9 @@ func index(w http.ResponseWriter, req *http.Request) {
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
+	// getUser, uses the session and returns a user
+	// This user could be an empty object, if the session
+	// could not find a matching user
 	u := getUser(w, req)
 	if !alreadyLoggedIn(req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
@@ -50,12 +59,9 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
-
 	var u user
-
 	// process form submission
 	if req.Method == http.MethodPost {
-
 		// get form values
 		un := req.FormValue("username")
 		p := req.FormValue("password")
@@ -63,11 +69,64 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		l := req.FormValue("lastname")
 
 		// username taken?
+		// check is username is available
 		if _, ok := dbUsers[un]; ok {
 			http.Error(w, "Username already taken", http.StatusForbidden)
 			return
 		}
 
+		// If username is available
+		// create session
+		sID := uuid.NewV4()
+		c := &http.Cookie{
+			Name:  "session",
+			Value: sID.String(),
+		}
+
+		http.SetCookie(w, c)
+		dbSessions[c.Value] = un
+		// Create hash
+		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		// store user in dbUsers
+		u = user{un, bs, f, l}
+		dbUsers[un] = u
+		// redirect
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
+	tpl.ExecuteTemplate(w, "signup.html", u)
+}
+
+func login(w http.ResponseWriter, req *http.Request) {
+	// We use the session to determine if user is logged in
+	if alreadyLoggedIn(req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
+
+	// process form submission
+	// if we enter credentials and submit
+	if req.Method == http.MethodPost {
+		un := req.FormValue("username")
+		p := req.FormValue("password")
+		// is there a matching username?
+		u, ok := dbUsers[un]
+		// If no matching user
+		if !ok {
+			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
+			return
+		}
+		// does the entered password match the stored password?
+		// u.Password is the hash vs []byte(e) the entered password
+		err := bcrypt.CompareHashAndPassword(u.Password, []byte(p))
+		if err != nil {
+			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
+			return
+		}
 		// create session
 		sID := uuid.NewV4()
 		c := &http.Cookie{
@@ -76,29 +135,9 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		}
 		http.SetCookie(w, c)
 		dbSessions[c.Value] = un
-
-		// store user in dbUsers
-		// We pass p (password) to the slice of bytes, to generate the
-		// encrypted password
-		// MinCost, is a constant that determines the strength of encryption
-		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
-		if err != nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		// Now we store the bs instead of password in the user object
-		u = user{un, bs, f, l}
-		dbUsers[un] = u
-
-		// redirect
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
 
-	tpl.ExecuteTemplate(w, "signup.html", u)
+	tpl.ExecuteTemplate(w, "login.html", nil)
 }
-
-// map examples with the comma, ok idiom
-// https://play.golang.org/p/OKGL6phY_x
-// https://play.golang.org/p/yORyGUZviV
