@@ -6,20 +6,12 @@
 </head>
 <body>
 
-<form method="post">
-
-    <input type="email" name="username" placeholder="email"><br>
-    <input type="text" name="firstname" placeholder="first name"><br>
-    <input type="text" name="lastname" placeholder="last name"><br>
-    <input type="submit">
-
-</form>
-
-
 {{if .First}}
 USER NAME {{.UserName}}<br>
 FIRST {{.First}}<br>
 LAST {{.Last}}<br>
+{{else}}
+<h2><a href="/signup">sign up</a></h2>
 {{end}}
 
 <br>
