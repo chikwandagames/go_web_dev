@@ -13,6 +13,7 @@ type user struct {
 	Password []byte
 	First    string
 	Last     string
+	Role     string
 }
 
 var tpl *template.Template
@@ -21,11 +22,6 @@ var dbSessions = map[string]string{} // session ID, user ID
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
-	// Generate a hash
-	bs, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.MinCost)
-	// Create a test user, set bs (hash) as password
-	// Here we hardcode a user
-	dbUsers["dred@gmail.com"] = user{"dred@gmail.com", bs, "Jah", "Ranga"}
 }
 
 func main() {
@@ -52,6 +48,12 @@ func bar(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
+
+	// Restrict a user
+	if u.Role != "007" {
+		http.Error(w, "You must be 007 to enter the bar", http.StatusForbidden)
+		return
+	}
 	tpl.ExecuteTemplate(w, "bar.html", u)
 }
 
@@ -68,6 +70,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		p := req.FormValue("password")
 		f := req.FormValue("firstname")
 		l := req.FormValue("lastname")
+		r := req.FormValue("role")
 
 		// username taken?
 		// check is username is available
@@ -93,7 +96,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		// store user in dbUsers
-		u = user{un, bs, f, l}
+		u = user{un, bs, f, l, r}
 		dbUsers[un] = u
 		// redirect
 		http.Redirect(w, req, "/", http.StatusSeeOther)
