@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,31 +31,44 @@ func index(w http.ResponseWriter, req *http.Request) {
 
 	// process form submission
 	if req.Method == http.MethodPost {
-		// Get the file
+		// Get the file, request form file
+		// mf multipart.File, fh file.Header
 		mf, fh, err := req.FormFile("myFile")
 		if err != nil {
 			fmt.Println(err)
+			log.Fatalln(err)
 		}
+		// Close multipart file
 		defer mf.Close()
-		// Get the file extension
+		// Get the file extension, by spliting the FileHeader.Filename
+		// remove everthing before the . on .png or .jpg
 		ext := strings.Split(fh.Filename, ".")[1]
-		// create sha for file name
+		// create sha for file name, returns a hash
 		h := sha1.New()
+		// Copy mf into h, copy takes a source and destination
+		// func Copy(dst Writer, src Reader) (written int64, err error)
 		io.Copy(h, mf)
+		// h.Sum, is how you get the hash to work
+		// %x prints as a hex value
 		fname := fmt.Sprintf("%x", h.Sum(nil)) + "." + ext
 		// create new file
+		// os.Getwd, get current working dir
 		wd, err := os.Getwd()
 		if err != nil {
 			fmt.Println(err)
 		}
+		// Join current working dir + public + images, to cretate path
 		path := filepath.Join(wd, "public", "images", fname)
+		// Create a file using the path
 		nf, err := os.Create(path)
 		if err != nil {
 			fmt.Println(err)
 		}
 		defer nf.Close()
 		// copy
+		// Reset the read/write head to the beginning of the file
 		mf.Seek(0, 0)
+		// Now copy contents of the multipart file to the new file nf
 		io.Copy(nf, mf)
 		// add filename to this user's cookie
 		c = addFileNameValue(w, c, fname)
