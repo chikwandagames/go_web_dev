@@ -1,8 +1,14 @@
 package main
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -21,7 +27,44 @@ func main() {
 
 func index(w http.ResponseWriter, req *http.Request) {
 	c := getCookie(w, req)
-	tpl.ExecuteTemplate(w, "index.html", c.Value)
+
+	// process form submission
+	if req.Method == http.MethodPost {
+		// Get the file
+		mf, fh, err := req.FormFile("myFile")
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer mf.Close()
+		// Get the file extension
+		ext := strings.Split(fh.Filename, ".")[1]
+		// create sha for file name
+		h := sha1.New()
+		io.Copy(h, mf)
+		fname := fmt.Sprintf("%x", h.Sum(nil)) + "." + ext
+		// create new file
+		wd, err := os.Getwd()
+		if err != nil {
+			fmt.Println(err)
+		}
+		path := filepath.Join(wd, "public", "images", fname)
+		nf, err := os.Create(path)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer nf.Close()
+		// copy
+		mf.Seek(0, 0)
+		io.Copy(nf, mf)
+		// add filename to this user's cookie
+		c = addFileNameValue(w, c, fname)
+	}
+
+	// Here we splite the file names by the | delimeter,
+	// returning a slice of strings
+	xs := strings.Split(c.Value, "|")
+
+	tpl.ExecuteTemplate(w, "index.html", xs)
 }
 
 func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie {
@@ -37,5 +80,18 @@ func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie {
 		}
 		http.SetCookie(w, c)
 	}
+	return c
+}
+
+// Returns a cookie with a string of file names seperated by a |
+// added to the cookie value
+func addFileNameValue(w http.ResponseWriter, c *http.Cookie, fname string) *http.Cookie {
+	// values
+	s := c.Value
+	if !strings.Contains(s, fname) {
+		s += "|" + fname
+	}
+	c.Value = s
+	http.SetCookie(w, c)
 	return c
 }
