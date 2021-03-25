@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,12 +27,42 @@ pass that context around through the system
 
 func main() {
 	http.HandleFunc("/", foo)
+	http.HandleFunc("/bar", bar)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
 
 func foo(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
+
+	// In practice DO NOT	uses context for storing random values
+	// Maybe only session ID or user ID, only values directlry associated with the request
+	ctx = context.WithValue(ctx, "userID", 777)
+	ctx = context.WithValue(ctx, "fname", "Bond")
+
+	uid, name := dbAccess(ctx)
+
+	fmt.Fprintf(w, "uid: %v \nname: %v \n", uid, name)
+}
+
+// Retrieves the Data from the context
+// dbAccess returns a tuple
+func dbAccess(ctx context.Context) (int, string) {
+	// .(int) is an assertion, asserting that ctx.Value("userID") is an int
+	uid := ctx.Value("userID").(int)
+	name := ctx.Value("fname").(string)
+	/*
+		acccess DB ...
+	*/
+	return uid, name
+}
+
+func bar(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
 	log.Println(ctx)
 	fmt.Fprintln(w, ctx)
 }
+
+// per request variables
+// good candidate for putting into context
