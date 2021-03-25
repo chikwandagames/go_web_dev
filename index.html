@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+
+<body>
+
+  <script>
+    // Key and value
+    localStorage.setItem('favoriteflavor', 'vanilla');
+    var taste = localStorage.getItem('favoriteflavor');
+    console.log(taste);
+    console.log("Deleting vanilla")
+    // Delete
+    // localStorage.removeItem('favoriteflavor');
+    taste = localStorage.getItem('favoriteflavor');
+
+    if (taste === null)
+      console.log("vanilla NOT found")
+    else
+      console.log(taste);
+
+
+  </script>
+
+</body>
+
+</html>
