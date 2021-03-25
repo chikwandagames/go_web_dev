@@ -1,41 +1,38 @@
 package main
 
 import (
-	"html/template"
-	"net/http"
-
-	uuid "github.com/satori/go.uuid"
+	"crypto/hmac"
+	"crypto/sha256"
+	"fmt"
+	"io"
 )
 
-var tpl *template.Template
-
-func init() {
-	tpl = template.Must(template.ParseGlob("templates/*"))
-}
+// HMAC, Hash-based Message Authentication
+// The same input should produce the same output
+// How we can use HMAC
+// If we store a value in a users machine, and want to verify that
+// number has not been tempered with,
+// 1. We can take the value we want to store, run it through HMAC + Private key,
+//    this creates a hash
+// 2. We can then then take the value + hash, pin the 2 together, store on them
+//    on the users machine
+// 3. When we get the value and hash from the user, we can run it throut the
+//    hash algorithm with our private key, this produces a hash
+// 4. We can then compare that hash to the one stored on the users machine
+// These should match if values are not tempered with
 
 func main() {
-	http.HandleFunc("/", index)
-	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.ListenAndServe(":8080", nil)
+	c := getCode("test@example.com")
+	fmt.Println(c)
+	c = getCode("test@exampl.com")
+	fmt.Println(c)
 }
 
-func index(w http.ResponseWriter, req *http.Request) {
-	c := getCookie(w, req)
-	tpl.ExecuteTemplate(w, "index.html", c.Value)
-}
-
-func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie {
-	// Get cookie
-	c, err := req.Cookie("session")
-	// If no cookie
-	if err != nil {
-		sID := uuid.NewV4()
-		// Create a cookie
-		c = &http.Cookie{
-			Name:  "session",
-			Value: sID.String(),
-		}
-		http.SetCookie(w, c)
-	}
-	return c
+func getCode(s string) string {
+	// hmac.New(), takes a shar256 hash + a private key
+	// and returns a hash
+	h := hmac.New(sha256.New, []byte("ourkey"))
+	// Here we write the passed string into the hash
+	io.WriteString(h, s)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
